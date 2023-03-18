@@ -1,7 +1,7 @@
 # meshFT
 **meshFT** is a minimalistic PyTorch-based python library that provides a differentiable fourier transform that compute Fourier transform of triangle meshes in a given box. We support operations both on CPU and GPU. We provide **C++/CUDA** bindings to compute efficiently the forward and backward passes, to enable differentiable rasterization of triangulated data at scale. 
 
-<img src="mesh_ft.png" alt="drawing" width="400"/>
+<img src="mesh_f.png" alt="drawing" width="400"/>
 
 ### Installation
 
