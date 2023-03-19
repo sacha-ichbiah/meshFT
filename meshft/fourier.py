@@ -1,6 +1,12 @@
 import torch
 import numpy as np
 from torch import nn
+def generate_gaussian_psf_from_sigma(sigma, xi0,xi1,xi2):
+    sig = -sigma/2
+    Gridxi0, Gridxi1, Gridxi2 = torch.meshgrid(xi0,xi1,xi2,indexing = 'ij')
+    ems = torch.exp(sig * (Gridxi0**2 + Gridxi1**2+ Gridxi2**2))
+    return(ems)
+
 
 def compute_box_size(verts,offset=0.1):
     #Compute automatically the box according to the position of the vertices. 
@@ -21,10 +27,10 @@ def get_internal_triangle_and_mesh_areas(Verts,Faces):
     meshar = torch.sum(trisar)
     return(trisar,meshar)
 
-def fourier3dfunctionPy(Verts,Faces,xi0, xi1, xi2):
+def MeshFTPy(Verts,Faces,xi0, xi1, xi2, Filter, narrowband_thresh=0.01):
     #This is the real surrogate of our torch function in python.
+    
     trisar,meshar = get_internal_triangle_and_mesh_areas(Verts,Faces)
-
     tom = 2/meshar
     trisar*=tom
 
@@ -32,14 +38,20 @@ def fourier3dfunctionPy(Verts,Faces,xi0, xi1, xi2):
     v1 = Faces[:,1]
     v2 = Faces[:,2]
 
+    boolean_grid = torch.abs(Filter)>narrowband_thresh
+
     Gridxi0, Gridxi1, Gridxi2 = torch.meshgrid(xi0,xi1,xi2,indexing = 'ij')
     Gridxi0 = Gridxi0.to(xi0.device)
     Gridxi1.to(xi0.device)
     Gridxi2.to(xi1.device)
     
-    xiv =  (Gridxi0.reshape(-1,1)@(Verts[:,0].reshape(1,-1)) +
-              Gridxi1.reshape(-1,1)@(Verts[:,1].reshape(1,-1)) + 
-              Gridxi2.reshape(-1,1)@(Verts[:,2].reshape(1,-1)))
+    N_Gridxi0 = Gridxi0[boolean_grid]
+    N_Gridxi1 = Gridxi1[boolean_grid]
+    N_Gridxi2 = Gridxi2[boolean_grid]
+    
+    xiv =  (N_Gridxi0.reshape(-1,1)@(Verts[:,0].reshape(1,-1)) +
+              N_Gridxi1.reshape(-1,1)@(Verts[:,1].reshape(1,-1)) + 
+              N_Gridxi2.reshape(-1,1)@(Verts[:,2].reshape(1,-1)))
 
     emxiv = torch.exp(-1j* xiv)
 
@@ -85,17 +97,17 @@ def fourier3dfunctionPy(Verts,Faces,xi0, xi1, xi2):
     Grid_results[R5] = emixia[R5]/(xiab[R5]*xica[R5])+emixib[R5]/(xibc[R5]*xiab[R5])+emixic[R5]/(xica[R5]*xibc[R5])
 
 
-    #ftmesh = torch.complex(torch.zeros_like(Gridxi0),torch.zeros_like(Gridxi0))
+    ftmesh = torch.complex(torch.zeros_like(Gridxi0),torch.zeros_like(Gridxi0))
     trisar_complex = torch.complex(trisar,torch.zeros_like(trisar))
-    ftmesh= (Grid_results@(trisar_complex)).reshape(Gridxi0.shape)
+    ftmesh[torch.abs(Filter)>narrowband_thresh] = Grid_results@(trisar_complex)
     return(ftmesh)
 
-class Fourier3dFunctionPy(nn.Module):
+class Fourier3dMesh(nn.Module):
     
     """
     Module for the meshFT layer. Takes in a triangle mesh and returns a fourier transform.
     """
-    def __init__(self, box_size,box_shape,device = 'cpu', dtype = torch.float):
+    def __init__(self, box_size,box_shape,device = 'cpu', dtype = torch.float, gaussian_filter = False, sigma_base = 100, narrowband_thresh = 0.01):
         """
         box_shape: [x_res,y_res,z_res] Size of the fourier box (in voxels)
         box_size: [[x_min,xmax],[y_min,y_max],[z_min,z_max]] Size of the box (in the spatial dimensions of the mesh)"""
@@ -106,8 +118,18 @@ class Fourier3dFunctionPy(nn.Module):
         self.dtype = dtype
         self.device = device
         self.xi0,self.xi1,self.xi2 = self._compute_spatial_frequency_grid()
+        if gaussian_filter: 
+            extent_grid = (max(self.xi0.max(),self.xi1.max(),self.xi2.max())-min(self.xi0.min(),self.xi1.min(),self.xi2.min()))**2
+            sigma = sigma_base/extent_grid
+            
+            self.Filter = generate_gaussian_psf_from_sigma(sigma, self.xi0,self.xi1,self.xi2)
+            self.narrowband_thresh = narrowband_thresh
+            print("Fourier transform computed with a gaussian filter. \nLower sigma_base to add more frequencies. \nCurrent percentage of frequencies computed:",
+                  100*(torch.sum(self.Filter>self.narrowband_thresh)/torch.sum(torch.ones_like(self.Filter))).item())
+        else : 
+            self.Filter = torch.ones(box_shape, device = device, dtype = dtype)
+            self.narrowband_thresh = 0.0
         
-
     def forward(self, Verts,Faces):
         """
         Verts: vertex tensor. float tensor of shape (n_vertex, 3)
@@ -115,8 +137,12 @@ class Fourier3dFunctionPy(nn.Module):
                   if j cols, triangulate/tetrahedronize interior first.
         return meshFT: complex fourier transform of the mesh of shape self.box_shape
         """
-        ftmesh = fourier3dfunctionPy(Verts-self.box_size[:,0],Faces,self.xi0, self.xi1, self.xi2)
-                        
+        if self.device=='cpu': 
+            ftmesh = MeshFTPy(Verts-self.box_size[:,0],Faces,self.xi0, self.xi1, self.xi2,self.Filter,self.narrowband_thresh)
+        else : 
+            from .cuda_class import MeshFTCUDA
+            ftmesh = MeshFTCUDA(Verts-self.box_size[:,0],Faces,self.xi0, self.xi1, self.xi2,self.Filter,self.narrowband_thresh)
+            
         return ftmesh
     
     def _compute_spatial_frequency_grid(self): 
@@ -139,9 +165,4 @@ class Fourier3dFunctionPy(nn.Module):
         Kn2 = 2*K2-nn2
         xi2 = Kn2*s2
         return(xi0,xi1,xi2)
-    
-if not torch.cuda.is_available():
-    Fourier3dMesh = Fourier3dFunctionPy#()
-else : 
-    from .cuda_class import Fourier3dFunctionCUDA
-    Fourier3dMesh = Fourier3dFunctionCUDA#()
+

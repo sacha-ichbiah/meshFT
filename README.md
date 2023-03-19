@@ -18,15 +18,16 @@ pip install meshFT
 ```
 
 ```py
-import trimesh, torch, numpy
+import trimesh, torch
+import numpy as np
 from meshft import compute_box_size, Fourier3dMesh
 
 device = 'cpu'
 
 #Create a sphere and convert Verts, Faces into torch tensors
 Mesh = trimesh.primitives.Sphere(subdivisions = 1)
-faces = numpy.array(Mesh.faces)
-verts = numpy.array(Mesh.vertices)
+faces = np.array(Mesh.faces)
+verts = np.array(Mesh.vertices)
 Verts = torch.tensor(verts,dtype = torch.float,requires_grad=True)
 Faces = torch.tensor(faces,dtype = torch.long)
 
