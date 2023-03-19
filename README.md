@@ -7,18 +7,24 @@ Our main contribution, that allows meshFT to compute transforms in tractable tim
 
 
 ### Installation
+#### CPU installation
+```shell
+pip install meshFT
+```
+#### GPU installation
+To use the meshFT with CUDA:
+```shell
+git clone https://github.com/sacha-ichbiah/meshFT.git && cd meshFT && pip install -e .
+```
 
-`pip install meshft`
+
 
 
 ### Example 
 
 Load a mesh and compute its Fourier transform
 
-```shell
-pip install meshFT
 
-```
 
 ```py
 import trimesh, torch
