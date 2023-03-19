@@ -8,7 +8,7 @@ readme = (this_directory / "README.md").read_text()
 if not torch.cuda.is_available():
     setup(
         name='MeshFT',
-        version='0.1.0',
+        version='0.1.1',
         description='MeshFT implementation',
         url='https://github.com/sacha-ichbiah/meshFT',
         author='Sacha Ichbiah',
@@ -19,20 +19,15 @@ if not torch.cuda.is_available():
 
         install_requires=['numpy>=1.21.6',
                     'torch>=1.13.1',
-                    'largesteps>=0.2.1',
-                    'robust_laplacian>=0.2.2',
-                    'scipy>=1.5.4',
-                    'trimesh>=3.10.2',
                         ],
         long_description=readme,
         long_description_content_type="text/markdown"
     )
 
 else : 
-
     setup(
         name='MeshFT',
-        version='0.1.0',
+        version='0.1.1',
         description='MeshFT implementation',
         url='https://github.com/sacha-ichbiah/meshFT',
         author='Sacha Ichbiah',
@@ -53,10 +48,6 @@ else :
 
         install_requires=['numpy>=1.21.6',
                     'torch>=1.13.1',
-                    'largesteps>=0.2.1',
-                    'robust_laplacian>=0.2.2',
-                    'scipy>=1.5.4',
-                    'trimesh>=3.10.2',
                         ],
         long_description=readme,
         long_description_content_type="text/markdown"
