@@ -141,7 +141,7 @@ class Fourier3dMesh(nn.Module):
             ftmesh = MeshFTPy(Verts-self.box_size[:,0],Faces,self.xi0, self.xi1, self.xi2,self.Filter,self.narrowband_thresh)
         else : 
             from .cuda_class import MeshFTCUDA
-            ftmesh = MeshFTCUDA(Verts-self.box_size[:,0],Faces,self.xi0, self.xi1, self.xi2,self.Filter,self.narrowband_thresh)
+            ftmesh = MeshFTCUDA.apply(Verts-self.box_size[:,0],Faces,self.xi0, self.xi1, self.xi2,self.Filter,self.narrowband_thresh)
             
         return ftmesh
     
