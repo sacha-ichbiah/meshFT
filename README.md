@@ -3,6 +3,9 @@
 
 <img src="mesh_ft.png" alt="drawing" style="background-color: transparent;" width="400"/>
 
+Our main contribution, that allows meshFT to compute transforms in tractable times, relies on a tunable narrow-band filter in the frequency space that avoid computing high frequencies of the Fourier transform. (see API)
+
+
 ### Installation
 
 `pip install meshft`
@@ -57,6 +60,16 @@ loss.backward()
 
 ---
 
+### API and Documentation
+
+
+- `Fourier3dMesh(self, box_size,box_shape,device = 'cpu', dtype = torch.float, gaussian_filter = False, sigma_base = 100.0, narrowband_thresh = 0.01)`: 
+    - `box_shape: [x_res,y_res,z_res]` Size of the fourier box (in voxels)
+    - `box_size:[[x_min,xmax],[y_min,y_max],[z_min,z_max]]` Dimensions of the box (in the spatial dimensions of the mesh)
+    - `gaussian_filter` has to be put to `True` to activate the narrow-band filter. 
+    - `sigma_base` defines the inverse width of the gaussian filter. Lower it to conserve more frequencies.
+    - `narrowband_thresh` threshold under which frequencies are not computed
+---
 
 ### Credits, contact, citations
 If you use this tool, please cite 
