@@ -14,7 +14,7 @@ pip install meshFT
 #### GPU installation
 To use the meshFT with CUDA:
 ```shell
-git clone https://github.com/sacha-ichbiah/meshFT.git && cd meshFT && pip install -e .
+git clone https://github.com/sacha-ichbiah/meshFT.git && cd meshFT && pip install requirements.txt && python3 setup.py install
 ```
 
 
