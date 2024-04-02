@@ -77,9 +77,6 @@ loss.backward()
     - `narrowband_thresh` threshold under which frequencies are not computed
 ---
 
-### Credits, contact, citations
-If you use this tool, please cite 
-
 
 
 
